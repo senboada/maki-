@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Maki+",
+    "slug": "maki-plus",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "makiplus",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.makiplus.app"
+    },
+    "android": {
+      "package": "com.makiplus.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#FFF6DD"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-status-bar"
+    ]
+  }
+}
