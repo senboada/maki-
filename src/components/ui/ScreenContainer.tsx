@@ -6,9 +6,10 @@ import { colors, spacing } from '../../theme';
 
 type ScreenContainerProps = PropsWithChildren<{
   scroll?: boolean;
+  scrollEnabled?: boolean;
 }>;
 
-export function ScreenContainer({ children, scroll = true }: ScreenContainerProps) {
+export function ScreenContainer({ children, scroll = true, scrollEnabled = true }: ScreenContainerProps) {
   if (!scroll) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -21,6 +22,7 @@ export function ScreenContainer({ children, scroll = true }: ScreenContainerProp
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
+        scrollEnabled={scrollEnabled}
         showsVerticalScrollIndicator={false}
       >
         {children}
