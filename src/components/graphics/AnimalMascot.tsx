@@ -3,8 +3,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { colors, radius, shadows, spacing } from '../../theme';
+import type { ChildAvatarAnimal } from '../../domain/profiles';
 
-export type AnimalKind = 'panda' | 'fox' | 'owl' | 'turtle' | 'rabbit';
+export type AnimalKind = ChildAvatarAnimal;
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -20,7 +21,9 @@ const animalConfig: Record<AnimalKind, { face: IconName; color: string; accent: 
   fox: { face: 'dog-side', color: colors.secondary, accent: colors.coral },
   owl: { face: 'owl', color: colors.lavender, accent: colors.banana },
   turtle: { face: 'turtle', color: colors.mint, accent: colors.primary },
-  rabbit: { face: 'rabbit', color: colors.surfaceSoft, accent: colors.coral }
+  rabbit: { face: 'rabbit', color: colors.surfaceSoft, accent: colors.coral },
+  bird: { face: 'bird', color: colors.sky, accent: colors.banana },
+  dog: { face: 'dog-side', color: colors.banana, accent: colors.secondary }
 };
 
 const sizes = {

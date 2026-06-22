@@ -77,6 +77,38 @@ export const authService = {
     return ok(true);
   },
 
+  async changePassword(currentPassword: string, newPassword: string): Promise<ServiceResult<boolean>> {
+    if (!supabase) {
+      return fail('Cambio de contraseña disponible al usar Supabase.');
+    }
+
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+
+    if (userError) {
+      return fail(userError.message);
+    }
+
+    const email = userData.user?.email;
+
+    if (!email) {
+      return fail('No encontramos el correo de la cuenta.');
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+
+    if (signInError) {
+      return fail('La contraseña actual no es correcta.');
+    }
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+    if (error) {
+      return fail(error.message);
+    }
+
+    return ok(true);
+  },
+
   async logout(): Promise<ServiceResult<boolean>> {
     try {
       if (supabase) {

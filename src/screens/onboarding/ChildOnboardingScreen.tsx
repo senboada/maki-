@@ -3,9 +3,9 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { AnimalMascot, GameWorldBackground } from '../../components/graphics';
+import { AnimalMascot, AnimalPickerModal, GameWorldBackground } from '../../components/graphics';
 import { AppButton, AppCard, AppInput, ScreenContainer } from '../../components/ui';
-import type { ChildGender, ReinforcementTopic } from '../../domain/profiles';
+import type { ChildAvatarAnimal, ChildGender, ReinforcementTopic } from '../../domain/profiles';
 import { useProfiles } from '../../providers';
 import { colors, radius, spacing, typography } from '../../theme';
 
@@ -19,17 +19,20 @@ const topicOptions: Array<{ label: string; value: ReinforcementTopic; icon: Icon
 ];
 
 const genderOptions: Array<{ label: string; value: ChildGender }> = [
-  { label: 'Nina', value: 'girl' },
-  { label: 'Nino', value: 'boy' },
+  { label: 'Niña', value: 'girl' },
+  { label: 'Niño', value: 'boy' },
   { label: 'Prefiero no decirlo', value: 'prefer_not_to_say' }
 ];
 
 export function ChildOnboardingScreen() {
   const { saveChildProfile } = useProfiles();
   const [name, setName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [age, setAge] = useState('');
   const [gender, setGender] = useState<ChildGender>('prefer_not_to_say');
+  const [avatarAnimal, setAvatarAnimal] = useState<ChildAvatarAnimal>('rabbit');
   const [topics, setTopics] = useState<ReinforcementTopic[]>(['multiplication']);
+  const [animalPickerVisible, setAnimalPickerVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -45,12 +48,17 @@ export function ChildOnboardingScreen() {
     const parsedAge = Number(age);
 
     if (!name.trim()) {
-      setError('Ingresa el nombre del nino o nina.');
+      setError('Ingresa el nombre del niño o niña.');
+      return;
+    }
+
+    if (!lastName.trim()) {
+      setError('Ingresa el apellido del niño o niña.');
       return;
     }
 
     if (!Number.isInteger(parsedAge) || parsedAge < 4 || parsedAge > 10) {
-      setError('La edad debe estar entre 4 y 10 anos.');
+      setError('La edad debe estar entre 4 y 10 años.');
       return;
     }
 
@@ -64,8 +72,10 @@ export function ChildOnboardingScreen() {
 
     const result = await saveChildProfile({
       name,
+      lastName,
       age: parsedAge,
       gender,
+      avatarAnimal,
       reinforcementTopics: topics
     });
 
@@ -81,14 +91,17 @@ export function ChildOnboardingScreen() {
       <ScreenContainer>
         <View style={styles.content}>
           <View style={styles.header}>
-            <AnimalMascot kind="rabbit" size="lg" mood="happy" />
-            <Text style={styles.title}>Perfil del pequeno explorador</Text>
-            <Text style={styles.subtitle}>Usaremos esto para personalizar la aventura.</Text>
+            <Pressable accessibilityRole="button" onPress={() => setAnimalPickerVisible(true)}>
+              <AnimalMascot kind={avatarAnimal} size="lg" mood="happy" />
+            </Pressable>
+            <Text style={styles.title}>Perfil del pequeño explorador</Text>
+            <Text style={styles.subtitle}>Usaremos esto para personalizar la aventura. Toca el animal para cambiarlo.</Text>
           </View>
 
           <AppCard color={colors.surface}>
             <View style={styles.form}>
               <AppInput label="Nombre" placeholder="Ej: Manu" value={name} onChangeText={setName} />
+              <AppInput label="Apellido" placeholder="Ej: Perez" value={lastName} onChangeText={setLastName} />
               <AppInput
                 keyboardType="number-pad"
                 label="Edad"
@@ -137,6 +150,12 @@ export function ChildOnboardingScreen() {
           </AppCard>
         </View>
       </ScreenContainer>
+      <AnimalPickerModal
+        selectedAnimal={avatarAnimal}
+        visible={animalPickerVisible}
+        onClose={() => setAnimalPickerVisible(false)}
+        onSelect={setAvatarAnimal}
+      />
     </GameWorldBackground>
   );
 }

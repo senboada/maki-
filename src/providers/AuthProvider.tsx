@@ -13,6 +13,7 @@ type AuthContextValue = {
   register: (email: string, password: string) => Promise<ServiceResult<AuthUser>>;
   login: (email: string, password: string) => Promise<ServiceResult<AuthUser>>;
   forgotPassword: (email: string) => Promise<ServiceResult<boolean>>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<ServiceResult<boolean>>;
   logout: () => Promise<ServiceResult<boolean>>;
   refreshSession: () => Promise<void>;
 };
@@ -58,6 +59,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return authService.forgotPassword(email);
   }
 
+  async function changePassword(currentPassword: string, newPassword: string) {
+    return authService.changePassword(currentPassword, newPassword);
+  }
+
   async function logout() {
     const result = await authService.logout();
 
@@ -97,6 +102,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       register,
       login,
       forgotPassword,
+      changePassword,
       logout,
       refreshSession
     }),

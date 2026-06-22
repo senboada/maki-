@@ -5,6 +5,7 @@ import { AnimalMascot, GameWorldBackground } from '../../components/graphics';
 import { AppButton, AppCard, ScreenContainer } from '../../components/ui';
 import type { AppStackParamList } from '../../navigation';
 import { colors, spacing, typography } from '../../theme';
+import { GameExitButton } from '../games/GameExitButton';
 import { operationContent, operations } from './practiceContent';
 
 type PracticeMenuScreenProps = NativeStackScreenProps<AppStackParamList, 'PracticeMenu'>;
@@ -13,6 +14,7 @@ export function PracticeMenuScreen({ navigation }: PracticeMenuScreenProps) {
   return (
     <GameWorldBackground variant="sky">
       <ScreenContainer>
+        <GameExitButton label="Volver" onPress={() => navigation.goBack()} />
         <View style={styles.header}>
           <AnimalMascot kind="owl" size="lg" mood="happy" />
           <Text style={styles.title}>Que quieres practicar?</Text>

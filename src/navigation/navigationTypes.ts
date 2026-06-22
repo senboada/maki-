@@ -13,6 +13,7 @@ export type MainStackParamList = {
   FeaturePreview: {
     feature: 'practice' | 'games';
   };
+  Profile: undefined;
   PracticeMenu: undefined;
   PracticeNumberSelector: {
     operation: OperationType;
@@ -27,9 +28,6 @@ export type MainStackParamList = {
     gameType: PracticeGameType;
   };
   GamesMenu: undefined;
-  RandomGameSessionPreview: {
-    gameType: PracticeGameType;
-  };
   TreasureGame: GameRouteParams;
   MatchPairsGame: GameRouteParams;
   PasswordGame: GameRouteParams;
@@ -49,6 +47,7 @@ export type AppStackParamList = {
   FeaturePreview: {
     feature: 'practice' | 'games';
   };
+  Profile: undefined;
   PracticeMenu: undefined;
   PracticeNumberSelector: {
     operation: OperationType;
@@ -63,9 +62,6 @@ export type AppStackParamList = {
     gameType: PracticeGameType;
   };
   GamesMenu: undefined;
-  RandomGameSessionPreview: {
-    gameType: PracticeGameType;
-  };
   TreasureGame: GameRouteParams;
   MatchPairsGame: GameRouteParams;
   PasswordGame: GameRouteParams;

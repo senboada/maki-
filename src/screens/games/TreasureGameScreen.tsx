@@ -5,13 +5,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { AnimalMascot, CelebrationStars, GameWorldBackground } from '../../components/graphics';
-import { AppButton, AppCard, ScreenContainer } from '../../components/ui';
+import { AnimalMascot, GameWorldBackground } from '../../components/graphics';
+import { AppCard, ScreenContainer } from '../../components/ui';
 import type { AppStackParamList } from '../../navigation';
 import { colors, radius, spacing, typography } from '../../theme';
+import { GameCompleteCard } from './GameCompleteCard';
 import { GameExitButton } from './GameExitButton';
 import { createGameQuestions, getGameIntro } from './gameHelpers';
 import type { MathQuestion } from '../../domain/math';
+import { useGameSessionRecorder } from './useGameSessionRecorder';
 
 type TreasureGameScreenProps = NativeStackScreenProps<AppStackParamList, 'TreasureGame'>;
 
@@ -140,6 +142,7 @@ export function TreasureGameScreen({ navigation, route }: TreasureGameScreenProp
   const questions = useMemo(() => createGameQuestions(route.params), [route.params, runId]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [correct, setCorrect] = useState(0);
+  const [wrongAttempts, setWrongAttempts] = useState(0);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [showCrash, setShowCrash] = useState(false);
@@ -150,12 +153,12 @@ export function TreasureGameScreen({ navigation, route }: TreasureGameScreenProp
   const runnerY = useRef(new Animated.Value(getRunnerStart(defaultSceneWidth).y)).current;
   const runnerScale = useRef(new Animated.Value(1)).current;
   const sceneScale = useRef(new Animated.Value(1)).current;
-  const chestScale = useRef(new Animated.Value(0.7)).current;
   const feedbackScale = useRef(new Animated.Value(0.8)).current;
   const feedbackOpacity = useRef(new Animated.Value(0)).current;
 
   const currentQuestion = questions[currentIndex];
   const isComplete = currentIndex >= questions.length || showFinal;
+  const { finishSession, recordAnswer, resetRecorder } = useGameSessionRecorder({ gameType: 'treasure', params: route.params, totalQuestions: questions.length });
   const choices = useMemo<PathChoice[]>(() => {
     if (!currentQuestion) {
       return [];
@@ -163,6 +166,12 @@ export function TreasureGameScreen({ navigation, route }: TreasureGameScreenProp
 
     return createTreasureChoices(currentQuestion, sceneWidth);
   }, [currentQuestion, sceneWidth]);
+
+  useEffect(() => {
+    if (isComplete) {
+      void finishSession({ correctAnswers: correct });
+    }
+  }, [correct, finishSession, isComplete]);
 
   useEffect(() => {
     if (!isAnimating && !showFinal) {
@@ -207,23 +216,17 @@ export function TreasureGameScreen({ navigation, route }: TreasureGameScreenProp
     setRunId((value) => value + 1);
     setCurrentIndex(0);
     setCorrect(0);
+    setWrongAttempts(0);
     setFeedback(null);
     setIsAnimating(false);
     setShowFinal(false);
-    chestScale.setValue(0.7);
+    resetRecorder();
     resetRunner();
   }
 
   function animateFinal() {
     setShowFinal(true);
     setFeedback({ message: 'Tesoro encontrado!', tone: 'success' });
-    Animated.loop(
-      Animated.sequence([
-        Animated.spring(chestScale, { toValue: 1.08, useNativeDriver: true }),
-        Animated.spring(chestScale, { toValue: 0.96, useNativeDriver: true })
-      ]),
-      { iterations: 4 }
-    ).start();
   }
 
   function goNextRound() {
@@ -242,6 +245,7 @@ export function TreasureGameScreen({ navigation, route }: TreasureGameScreenProp
   function animateWrong() {
     const runnerStart = getRunnerStart(sceneWidth);
     setShowCrash(true);
+    setWrongAttempts((value) => value + 1);
     setFeedback({ message: 'Ups! camino bloqueado', tone: 'error' });
 
     Animated.sequence([
@@ -284,6 +288,7 @@ export function TreasureGameScreen({ navigation, route }: TreasureGameScreenProp
 
     setIsAnimating(true);
     setFeedback(null);
+    recordAnswer(currentQuestion, choice.answer, choice.answer === currentQuestion.correctAnswer);
 
     Animated.sequence([
       Animated.parallel([
@@ -309,13 +314,7 @@ export function TreasureGameScreen({ navigation, route }: TreasureGameScreenProp
     <GameWorldBackground variant="treasure">
       <ScreenContainer scroll={false}>
         {isComplete ? (
-          <TreasureFinalCelebration
-            chestScale={chestScale}
-            correct={correct}
-            total={questions.length}
-            onHome={() => navigation.popToTop()}
-            onReplay={resetGame}
-          />
+          <GameCompleteCard correct={correct} extraAttempts={wrongAttempts} gameType="treasure" total={questions.length} onHome={() => navigation.popToTop()} onReplay={resetGame} />
         ) : (
           <View style={styles.content}>
             <View style={styles.topBar}>
@@ -426,7 +425,7 @@ export function TreasureGameScreen({ navigation, route }: TreasureGameScreenProp
                     }
                   ]}
                 >
-                  <AnimalMascot kind="fox" showBadge={false} size="sm" mood="celebrating" />
+                  <AnimalMascot kind="bird" showBadge={false} size="sm" mood="celebrating" />
                 </Animated.View>
               </LinearGradient>
             </Animated.View>
@@ -434,34 +433,6 @@ export function TreasureGameScreen({ navigation, route }: TreasureGameScreenProp
         )}
       </ScreenContainer>
     </GameWorldBackground>
-  );
-}
-
-type TreasureFinalCelebrationProps = {
-  chestScale: Animated.Value;
-  correct: number;
-  total: number;
-  onHome: () => void;
-  onReplay: () => void;
-};
-
-function TreasureFinalCelebration({ chestScale, correct, onHome, onReplay, total }: TreasureFinalCelebrationProps) {
-  return (
-    <View style={styles.finalWrap}>
-      <AppCard color={colors.surface}>
-        <View style={styles.finalContent}>
-          <AnimalMascot kind="fox" showBadge={false} size="lg" mood="celebrating" />
-          <Animated.View style={[styles.chest, { transform: [{ scale: chestScale }] }]}> 
-            <MaterialCommunityIcons name="treasure-chest" size={82} color={colors.secondaryDark} />
-          </Animated.View>
-          <Text style={styles.finalTitle}>Encontraste el tesoro!</Text>
-          <Text style={styles.finalText}>Ganaste {correct} de {total} estrellas en esta aventura.</Text>
-          <CelebrationStars count={5} />
-          <AppButton icon="refresh" title="Jugar otra vez" onPress={onReplay} />
-          <AppButton icon="home-heart" title="Volver al inicio" variant="soft" onPress={onHome} />
-        </View>
-      </AppCard>
-    </View>
   );
 }
 
@@ -608,33 +579,5 @@ const styles = StyleSheet.create({
   feedbackText: {
     ...typography.caption,
     color: colors.text
-  },
-  finalWrap: {
-    flex: 1,
-    justifyContent: 'center'
-  },
-  finalContent: {
-    alignItems: 'center',
-    gap: spacing.lg
-  },
-  chest: {
-    width: 122,
-    height: 122,
-    borderRadius: radius.xl,
-    backgroundColor: colors.banana,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: colors.surface
-  },
-  finalTitle: {
-    ...typography.heading,
-    color: colors.text,
-    textAlign: 'center'
-  },
-  finalText: {
-    ...typography.body,
-    color: colors.textMuted,
-    textAlign: 'center'
   }
 });

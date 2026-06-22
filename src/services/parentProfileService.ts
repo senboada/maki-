@@ -38,7 +38,9 @@ export const parentProfileService = {
       return ok(data ? mapParentProfile(data as ParentProfileRow) : null);
     }
 
-    return ok(await storageClient.getJson<ParentProfile>(storageKeys.parentProfile));
+    const profile = await storageClient.getJson<ParentProfile>(storageKeys.parentProfile);
+
+    return ok(profile?.userId === userId ? profile : null);
   },
 
   async createParentProfile(userId: string, email: string): Promise<ServiceResult<ParentProfile>> {
@@ -55,7 +57,7 @@ export const parentProfileService = {
     if (supabase) {
       const { data, error } = await supabase
         .from('parent_profiles')
-        .insert({ user_id: userId, email })
+        .upsert({ user_id: userId, email }, { onConflict: 'user_id' })
         .select('id,user_id,email,consent_accepted,consent_accepted_at')
         .single();
 
@@ -98,7 +100,7 @@ export const parentProfileService = {
 
     const profile = await storageClient.getJson<ParentProfile>(storageKeys.parentProfile);
 
-    if (!profile) {
+    if (!profile || profile.id !== parentId) {
       return fail('No encontramos el perfil del acudiente.');
     }
 

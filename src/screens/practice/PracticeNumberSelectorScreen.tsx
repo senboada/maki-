@@ -3,9 +3,10 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { AnimalMascot, GameWorldBackground, SoftFeedbackBubble } from '../../components/graphics';
-import { AppButton, ScreenContainer } from '../../components/ui';
+import { ScreenContainer } from '../../components/ui';
 import type { AppStackParamList } from '../../navigation';
 import { colors, radius, spacing, typography } from '../../theme';
+import { GameExitButton } from '../games/GameExitButton';
 import { getPracticeNumberRange, operationContent } from './practiceContent';
 
 type PracticeNumberSelectorScreenProps = NativeStackScreenProps<AppStackParamList, 'PracticeNumberSelector'>;
@@ -18,6 +19,7 @@ export function PracticeNumberSelectorScreen({ navigation, route }: PracticeNumb
   return (
     <GameWorldBackground variant="forest">
       <ScreenContainer>
+        <GameExitButton label="Volver" onPress={() => navigation.goBack()} />
         <View style={styles.header}>
           <AnimalMascot kind="turtle" size="lg" mood="thinking" />
           <View style={styles.titleRow}>
@@ -41,14 +43,6 @@ export function PracticeNumberSelectorScreen({ navigation, route }: PracticeNumb
           ))}
         </View>
 
-        <View style={styles.footer}>
-          <AppButton
-            icon="arrow-left-circle-outline"
-            title="Volver"
-            variant="soft"
-            onPress={() => navigation.goBack()}
-          />
-        </View>
       </ScreenContainer>
     </GameWorldBackground>
   );
@@ -98,9 +92,5 @@ const styles = StyleSheet.create({
   numberText: {
     ...typography.subheading,
     color: colors.text
-  },
-  footer: {
-    marginTop: spacing.xl,
-    paddingBottom: spacing.xl
   }
 });

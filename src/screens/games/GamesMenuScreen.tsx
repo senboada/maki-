@@ -1,22 +1,39 @@
+import { useMemo } from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { AnimalMascot, GameWorldBackground, SoftFeedbackBubble } from '../../components/graphics';
+import { AnimalMascot, GameWorldBackground, SoftFeedbackBubble, type AnimalKind } from '../../components/graphics';
 import { AppButton, AppCard, ScreenContainer } from '../../components/ui';
 import type { AppStackParamList } from '../../navigation';
+import { useProfiles } from '../../providers';
 import { colors, spacing, typography } from '../../theme';
+import { GameExitButton } from './GameExitButton';
 import { navigateToGame } from './gameHelpers';
 import { gameContent, practiceGames } from '../practice/practiceContent';
 
 type GamesMenuScreenProps = NativeStackScreenProps<AppStackParamList, 'GamesMenu'>;
 
+const menuAnimals: AnimalKind[] = ['panda', 'fox', 'owl', 'turtle', 'rabbit', 'bird', 'dog'];
+
+function pickMenuAnimal(seed: string) {
+  const total = [...seed].reduce((sum, character) => sum + character.charCodeAt(0), 0);
+
+  return menuAnimals[total % menuAnimals.length] as AnimalKind;
+}
+
 export function GamesMenuScreen({ navigation }: GamesMenuScreenProps) {
+  const { childProfile } = useProfiles();
+  const animalSeed = childProfile?.id ?? childProfile?.name ?? 'games';
+  const fallbackMenuAnimal = useMemo(() => pickMenuAnimal(animalSeed), [animalSeed]);
+  const menuAnimal = childProfile?.avatarAnimal ?? fallbackMenuAnimal;
+
   return (
     <GameWorldBackground variant="treasure">
       <ScreenContainer>
+        <GameExitButton label="Volver" onPress={() => navigation.goBack()} />
         <View style={styles.header}>
-          <AnimalMascot kind="fox" size="lg" mood="celebrating" />
+          <AnimalMascot kind={menuAnimal} size="lg" mood="celebrating" />
           <Text style={styles.title}>Juegos</Text>
           <Text style={styles.subtitle}>Elige una aventura. Las operaciones saldran mezcladas.</Text>
           <SoftFeedbackBubble message="Suma, resta, multiplicacion y division en modo sorpresa" />

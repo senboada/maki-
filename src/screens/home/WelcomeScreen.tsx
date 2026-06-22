@@ -1,14 +1,16 @@
 import type { ComponentProps } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { AnimalCard, AnimalMascot, CelebrationStars, GameWorldBackground, SoftFeedbackBubble } from '../../components/graphics';
-import { AppButton, AppCard, ScreenContainer } from '../../components/ui';
+import { AnimalCard, AnimalMascot, GameWorldBackground } from '../../components/graphics';
+import { ScreenContainer } from '../../components/ui';
 import type { ReinforcementTopic } from '../../domain/profiles';
 import type { MainStackParamList } from '../../navigation';
 import { useAuth, useProfiles } from '../../providers';
 import { colors, radius, spacing, typography } from '../../theme';
+import type { AnimalKind } from '../../components/graphics';
 
 type WelcomeScreenProps = NativeStackScreenProps<MainStackParamList, 'Welcome'>;
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -20,12 +22,54 @@ const topicLabels: Record<ReinforcementTopic, { label: string; icon: IconName; c
   division: { label: 'Division', icon: 'division', color: colors.mint }
 };
 
+const homeAnimals: AnimalKind[] = ['panda', 'fox', 'owl', 'turtle', 'rabbit', 'bird', 'dog'];
+
+function formatFirstName(name?: string) {
+  const firstName = name?.trim().split(/\s+/)[0] ?? 'explorador';
+  const normalizedName = firstName.toLocaleLowerCase('es-CO');
+
+  return `${normalizedName.charAt(0).toLocaleUpperCase('es-CO')}${normalizedName.slice(1)}`;
+}
+
+function pickAnimal(seed: string, offset = 0) {
+  const total = [...seed].reduce((sum, character) => sum + character.charCodeAt(0), 0);
+
+  return homeAnimals[(total + offset) % homeAnimals.length] as AnimalKind;
+}
+
 export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
   const { backendMode, logout } = useAuth();
-  const { childProfile } = useProfiles();
+  const { childProfile, clearChildProfileCelebration, justCompletedChildProfile } = useProfiles();
+  const [menuVisible, setMenuVisible] = useState(false);
   const isSupabaseMode = backendMode === 'supabase';
-  const childName = childProfile?.name ?? 'explorador';
+  const childName = formatFirstName(childProfile?.name);
+  const animalSeed = childProfile?.id ?? childName;
+  const fallbackHeroAnimal = useMemo(() => pickAnimal(animalSeed), [animalSeed]);
+  const heroAnimal = childProfile?.avatarAnimal ?? fallbackHeroAnimal;
+  const gamesAnimal = useMemo(() => pickAnimal(animalSeed, 2), [animalSeed]);
+  const practiceAnimal = useMemo(() => pickAnimal(animalSeed, 4), [animalSeed]);
   const topics = childProfile?.reinforcementTopics ?? [];
+  const celebrationScale = useRef(new Animated.Value(0.8)).current;
+  const celebrationOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!justCompletedChildProfile) {
+      return undefined;
+    }
+
+    celebrationScale.setValue(0.8);
+    celebrationOpacity.setValue(0);
+    Animated.parallel([
+      Animated.spring(celebrationScale, { toValue: 1, friction: 5, tension: 120, useNativeDriver: true }),
+      Animated.timing(celebrationOpacity, { duration: 200, toValue: 1, useNativeDriver: true })
+    ]).start();
+
+    const timeout = setTimeout(() => {
+      Animated.timing(celebrationOpacity, { duration: 220, toValue: 0, useNativeDriver: true }).start(clearChildProfileCelebration);
+    }, 2600);
+
+    return () => clearTimeout(timeout);
+  }, [celebrationOpacity, celebrationScale, clearChildProfileCelebration, justCompletedChildProfile]);
 
   return (
     <GameWorldBackground variant="forest">
@@ -37,12 +81,24 @@ export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
           </View>
           <Pressable
             accessibilityRole="button"
-            onPress={() => void logout()}
-            style={styles.logoutButton}
+            onPress={() => setMenuVisible(true)}
+            style={styles.avatarMenuButton}
           >
-            <MaterialCommunityIcons name="logout-variant" size={22} color={colors.text} />
+            <AnimalMascot kind={heroAnimal} showBadge={false} size="sm" mood="happy" />
           </Pressable>
         </View>
+
+        {justCompletedChildProfile ? (
+          <Animated.View style={[styles.celebrationCard, { opacity: celebrationOpacity, transform: [{ scale: celebrationScale }] }]}> 
+            <View style={styles.celebrationIcons}>
+              <MaterialCommunityIcons name="party-popper" size={28} color={colors.secondaryDark} />
+              <AnimalMascot kind={heroAnimal} showBadge={false} size="sm" mood="celebrating" />
+              <MaterialCommunityIcons name="star-four-points" size={28} color={colors.secondaryDark} />
+            </View>
+            <Text style={styles.celebrationTitle}>¡Perfil listo!</Text>
+            <Text style={styles.celebrationText}>Ahora empieza la aventura de Maki+.</Text>
+          </Animated.View>
+        ) : null}
 
         <View style={styles.heroCard}>
           <View style={styles.heroCopy}>
@@ -55,42 +111,23 @@ export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
               <Text style={styles.backendText}>{isSupabaseMode ? 'Supabase local' : 'Modo local'}</Text>
             </View>
 
-            <Text style={styles.greeting}>Hola, {childName}!</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={styles.greeting}>Hola, {childName}!</Text>
             <Text style={styles.subtitle}>Hoy podemos practicar con animales, estrellas y mini retos.</Text>
 
             <View style={styles.childMetaRow}>
               {childProfile?.age ? (
                 <View style={styles.metaPill}>
                   <MaterialCommunityIcons name="cake-variant-outline" size={17} color={colors.primaryDark} />
-                  <Text style={styles.metaText}>{childProfile.age} anos</Text>
+                  <Text style={styles.metaText}>{childProfile.age} años</Text>
                 </View>
               ) : null}
-              <View style={styles.metaPill}>
-                <MaterialCommunityIcons name="star-four-points-outline" size={17} color={colors.primaryDark} />
-                <Text style={styles.metaText}>Mision diaria</Text>
-              </View>
             </View>
           </View>
 
           <View style={styles.mascotWrap}>
-            <AnimalMascot kind="panda" size="lg" mood="celebrating" />
+            <AnimalMascot kind={heroAnimal} size="lg" mood="celebrating" />
           </View>
         </View>
-
-        <AppCard color={colors.surface}>
-          <View style={styles.missionCard}>
-            <MaterialCommunityIcons
-              name="map-marker-star-outline"
-              size={34}
-              color={colors.secondaryDark}
-            />
-            <View style={styles.missionCopy}>
-              <Text style={styles.missionTitle}>Mision de hoy</Text>
-              <Text style={styles.missionText}>Elige una aventura y gana estrellas resolviendo operaciones.</Text>
-            </View>
-            <CelebrationStars count={3} />
-          </View>
-        </AppCard>
 
         {topics.length > 0 ? (
           <View style={styles.section}>
@@ -107,33 +144,57 @@ export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
           <Text style={styles.sectionTitle}>Que quieres hacer?</Text>
           <View style={styles.cards}>
             <AnimalCard
-              animal="fox"
+              animal={gamesAnimal}
               color={colors.surfaceSoft}
               description="Entra a tesoros, claves y caminos con operaciones mezcladas."
               icon="controller-classic-outline"
+              showBadge={false}
               title="Juegos"
               onPress={() => navigation.navigate('GamesMenu')}
             />
             <AnimalCard
-              animal="owl"
+              animal={practiceAnimal}
               color={colors.sky}
               description="Elige suma, resta, multiplicacion o division y refuerza un numero."
               icon="pencil-ruler"
+              showBadge={false}
               title="Practicas"
               onPress={() => navigation.navigate('PracticeMenu')}
             />
           </View>
         </View>
 
-        <View style={styles.bottomActions}>
-          <SoftFeedbackBubble message="Equivocarse tambien es parte de aprender" />
-          <AppButton
-            icon="rocket-launch-outline"
-            title="Empezar con Practicas"
-            onPress={() => navigation.navigate('PracticeMenu')}
-          />
-        </View>
       </ScreenContainer>
+      <Modal transparent animationType="fade" visible={menuVisible} onRequestClose={() => setMenuVisible(false)}>
+        <Pressable style={styles.menuBackdrop} onPress={() => setMenuVisible(false)}>
+          <View style={styles.profileMenu}>
+            <AnimalMascot kind={heroAnimal} showBadge={false} size="sm" mood="happy" />
+            <Text style={styles.menuTitle}>{childName}</Text>
+            <Pressable
+              accessibilityRole="button"
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                navigation.navigate('Profile');
+              }}
+            >
+              <MaterialCommunityIcons name="account-heart-outline" size={22} color={colors.primaryDark} />
+              <Text style={styles.menuItemText}>Perfil</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                void logout();
+              }}
+            >
+              <MaterialCommunityIcons name="logout-variant" size={22} color={colors.primaryDark} />
+              <Text style={styles.menuItemText}>Cerrar sesión</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </GameWorldBackground>
   );
 }
@@ -169,15 +230,16 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textMuted
   },
-  logoutButton: {
-    width: 48,
-    height: 48,
+  avatarMenuButton: {
+    width: 72,
+    height: 72,
     borderRadius: radius.pill,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: colors.border
+    borderColor: colors.border,
+    overflow: 'hidden'
   },
   heroCard: {
     borderRadius: radius.xl,
@@ -243,24 +305,6 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.text
   },
-  missionCard: {
-    alignItems: 'center',
-    gap: spacing.md
-  },
-  missionCopy: {
-    alignItems: 'center',
-    gap: spacing.xs
-  },
-  missionTitle: {
-    ...typography.subheading,
-    color: colors.text,
-    textAlign: 'center'
-  },
-  missionText: {
-    ...typography.body,
-    color: colors.textMuted,
-    textAlign: 'center'
-  },
   section: {
     gap: spacing.md,
     marginTop: spacing.xl
@@ -291,9 +335,62 @@ const styles = StyleSheet.create({
   cards: {
     gap: spacing.lg
   },
-  bottomActions: {
-    gap: spacing.md,
-    marginTop: spacing.xl,
-    paddingBottom: spacing.xl
+  celebrationCard: {
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.lg,
+    borderRadius: radius.xl,
+    borderWidth: 3,
+    borderColor: colors.surface,
+    backgroundColor: colors.banana,
+    padding: spacing.lg
+  },
+  celebrationIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md
+  },
+  celebrationTitle: {
+    ...typography.subheading,
+    color: colors.text
+  },
+  celebrationText: {
+    ...typography.caption,
+    color: colors.text
+  },
+  menuBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(47, 42, 74, 0.25)',
+    alignItems: 'flex-end',
+    paddingTop: 72,
+    paddingRight: spacing.lg
+  },
+  profileMenu: {
+    width: 210,
+    borderRadius: radius.xl,
+    backgroundColor: colors.surface,
+    borderWidth: 3,
+    borderColor: colors.border,
+    padding: spacing.md,
+    alignItems: 'center',
+    gap: spacing.sm
+  },
+  menuTitle: {
+    ...typography.caption,
+    color: colors.text,
+    fontWeight: '900'
+  },
+  menuItem: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderRadius: radius.lg,
+    backgroundColor: colors.backgroundAlt,
+    padding: spacing.md
+  },
+  menuItemText: {
+    ...typography.caption,
+    color: colors.text
   }
 });

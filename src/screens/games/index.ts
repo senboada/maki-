@@ -4,5 +4,4 @@ export * from './MatchPairsGameScreen';
 export * from './MazeGameScreen';
 export * from './PasswordGameScreen';
 export * from './GamesMenuScreen';
-export * from './RandomGameSessionPreviewScreen';
 export * from './TreasureGameScreen';

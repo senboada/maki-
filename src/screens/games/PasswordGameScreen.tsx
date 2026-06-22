@@ -11,6 +11,7 @@ import { colors, radius, spacing, typography } from '../../theme';
 import { GameCompleteCard } from './GameCompleteCard';
 import { GameExitButton } from './GameExitButton';
 import { createGameQuestions, getGameIntro } from './gameHelpers';
+import { useGameSessionRecorder } from './useGameSessionRecorder';
 
 type PasswordGameScreenProps = NativeStackScreenProps<AppStackParamList, 'PasswordGame'>;
 type PhoneMode = 'locked' | 'unlocking' | 'home';
@@ -31,6 +32,7 @@ export function PasswordGameScreen({ navigation, route }: PasswordGameScreenProp
   const [typedValue, setTypedValue] = useState('');
   const [correct, setCorrect] = useState(0);
   const [failedAttempts, setFailedAttempts] = useState(0);
+  const [wrongAttempts, setWrongAttempts] = useState(0);
   const [lockSeconds, setLockSeconds] = useState(0);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [phoneMode, setPhoneMode] = useState<PhoneMode>('locked');
@@ -45,6 +47,13 @@ export function PasswordGameScreen({ navigation, route }: PasswordGameScreenProp
   const passcodeLength = Math.max(4, answerLength);
   const isLocked = lockSeconds > 0;
   const isBusy = phoneMode !== 'locked' || isLocked;
+  const { finishSession, recordAnswer, resetRecorder } = useGameSessionRecorder({ gameType: 'password', params: route.params, totalQuestions: questions.length });
+
+  useEffect(() => {
+    if (isComplete) {
+      void finishSession({ correctAnswers: correct });
+    }
+  }, [correct, finishSession, isComplete]);
 
   useEffect(() => {
     if (lockSeconds <= 0) {
@@ -82,10 +91,12 @@ export function PasswordGameScreen({ navigation, route }: PasswordGameScreenProp
     setTypedValue('');
     setCorrect(0);
     setFailedAttempts(0);
+    setWrongAttempts(0);
     setLockSeconds(0);
     setFeedback(null);
     setPhoneMode('locked');
     resetAnimations();
+    resetRecorder();
   }
 
   function shakePhone() {
@@ -140,7 +151,12 @@ export function PasswordGameScreen({ navigation, route }: PasswordGameScreenProp
       return;
     }
 
-    if (Number(typedValue) === currentQuestion.correctAnswer) {
+    const selectedAnswer = Number(typedValue);
+    const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
+
+    recordAnswer(currentQuestion, selectedAnswer, isCorrect);
+
+    if (isCorrect) {
       setCorrect((value) => value + 1);
       unlockPhone();
       return;
@@ -149,6 +165,7 @@ export function PasswordGameScreen({ navigation, route }: PasswordGameScreenProp
     const nextAttempts = failedAttempts + 1;
     Vibration.vibrate(80);
     setFailedAttempts(nextAttempts);
+    setWrongAttempts((value) => value + 1);
     setFeedback({ message: nextAttempts >= maxAttempts ? 'Demasiados intentos' : 'Codigo incorrecto', tone: 'tryAgain' });
     setTypedValue('');
     shakePhone();
@@ -195,7 +212,7 @@ export function PasswordGameScreen({ navigation, route }: PasswordGameScreenProp
     <GameWorldBackground variant="sky">
       <ScreenContainer>
         {isComplete ? (
-          <GameCompleteCard correct={correct} total={questions.length} onHome={() => navigation.popToTop()} onReplay={resetGame} />
+          <GameCompleteCard correct={correct} extraAttempts={wrongAttempts} gameType="password" total={questions.length} onHome={() => navigation.popToTop()} onReplay={resetGame} />
         ) : (
           <View style={styles.content}>
             <View style={styles.topBar}>

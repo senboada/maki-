@@ -6,6 +6,7 @@ import { AnimalMascot, GameWorldBackground } from '../../components/graphics';
 import { AppButton, AppCard, ScreenContainer } from '../../components/ui';
 import type { AppStackParamList } from '../../navigation';
 import { colors, spacing, typography } from '../../theme';
+import { GameExitButton } from '../games/GameExitButton';
 import { navigateToGame } from '../games/gameHelpers';
 import { gameContent, operationContent, practiceGames } from './practiceContent';
 
@@ -18,6 +19,7 @@ export function PracticeGameSelectorScreen({ navigation, route }: PracticeGameSe
   return (
     <GameWorldBackground variant="treasure">
       <ScreenContainer>
+        <GameExitButton label="Volver" onPress={() => navigation.goBack()} />
         <View style={styles.header}>
           <AnimalMascot kind="fox" size="lg" mood="celebrating" />
           <Text style={styles.title}>Elige un juego</Text>

@@ -6,10 +6,10 @@ import {
   MatchPairsGameScreen,
   MazeGameScreen,
   PasswordGameScreen,
-  RandomGameSessionPreviewScreen,
   TreasureGameScreen
 } from '../screens/games';
 import { ChildOnboardingScreen, ConsentScreen } from '../screens/onboarding';
+import { ProfileScreen } from '../screens/profile';
 import {
   PracticeGameSelectorScreen,
   PracticeMenuScreen,
@@ -45,8 +45,8 @@ export function AppNavigator() {
         <>
           <Stack.Screen name="Welcome" component={WelcomeScreen} />
           <Stack.Screen name="FeaturePreview" component={FeaturePreviewScreen} />
+          <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="GamesMenu" component={GamesMenuScreen} />
-          <Stack.Screen name="RandomGameSessionPreview" component={RandomGameSessionPreviewScreen} />
           <Stack.Screen name="TreasureGame" component={TreasureGameScreen} options={gameScreenOptions} />
           <Stack.Screen name="MatchPairsGame" component={MatchPairsGameScreen} options={gameScreenOptions} />
           <Stack.Screen name="PasswordGame" component={PasswordGameScreen} options={gameScreenOptions} />

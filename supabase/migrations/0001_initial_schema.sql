@@ -25,8 +25,10 @@ create table if not exists public.child_profiles (
   id uuid primary key default gen_random_uuid(),
   parent_id uuid not null references public.parent_profiles(id) on delete cascade,
   name text not null,
+  last_name text,
   age integer not null,
   gender text,
+  avatar_animal text not null default 'rabbit',
   reinforcement_topics text[] not null default '{}',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -35,6 +37,9 @@ create table if not exists public.child_profiles (
   constraint child_profiles_age_range check (age between 4 and 10),
   constraint child_profiles_gender_allowed check (
     gender is null or gender in ('girl', 'boy', 'prefer_not_to_say')
+  ),
+  constraint child_profiles_avatar_animal_allowed check (
+    avatar_animal in ('panda', 'fox', 'owl', 'turtle', 'rabbit', 'bird', 'dog')
   ),
   constraint child_profiles_topics_not_empty check (cardinality(reinforcement_topics) >= 1),
   constraint child_profiles_topics_allowed check (
@@ -285,6 +290,13 @@ with check (
       and parent.user_id = auth.uid()
   )
 );
+
+grant usage on schema public to authenticated;
+
+grant select, insert, update on table public.parent_profiles to authenticated;
+grant select, insert, update on table public.child_profiles to authenticated;
+grant select, insert, update on table public.game_sessions to authenticated;
+grant select, insert on table public.game_answers to authenticated;
 
 -- No delete policies are defined in the MVP. Data deletion should be added as
 -- an explicit guardian/account flow later, not as a casual app action.

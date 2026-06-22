@@ -12,6 +12,7 @@ import { DrawPath, type DrawPoint } from './DrawPath';
 import { GameCompleteCard } from './GameCompleteCard';
 import { GameExitButton } from './GameExitButton';
 import { createGameQuestions, getGameIntro } from './gameHelpers';
+import { useGameSessionRecorder } from './useGameSessionRecorder';
 
 type MazeGameScreenProps = NativeStackScreenProps<AppStackParamList, 'MazeGame'>;
 
@@ -218,6 +219,7 @@ export function MazeGameScreen({ navigation, route }: MazeGameScreenProps) {
   const questions = useMemo(() => createGameQuestions(route.params), [route.params, runId]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [correct, setCorrect] = useState(0);
+  const [wrongAttempts, setWrongAttempts] = useState(0);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [paintedCells, setPaintedCells] = useState<MazeCell[]>([]);
   const [wrongPath, setWrongPath] = useState<DrawPoint[]>([]);
@@ -236,6 +238,7 @@ export function MazeGameScreen({ navigation, route }: MazeGameScreenProps) {
 
   const currentQuestion = questions[currentIndex];
   const isComplete = currentIndex >= questions.length;
+  const { finishSession, recordAnswer, resetRecorder } = useGameSessionRecorder({ gameType: 'maze', params: route.params, totalQuestions: questions.length });
   const answerOptions = useMemo(() => {
     if (!currentQuestion) {
       return [];
@@ -244,6 +247,12 @@ export function MazeGameScreen({ navigation, route }: MazeGameScreenProps) {
     return createMazeAnswers(currentQuestion.correctAnswer, currentQuestion.options);
   }, [currentQuestion]);
   const paintedPath = paintedCells.map((cell) => getCellCenter(cell, boardSize));
+
+  useEffect(() => {
+    if (isComplete) {
+      void finishSession({ correctAnswers: correct });
+    }
+  }, [correct, finishSession, isComplete]);
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -295,7 +304,9 @@ export function MazeGameScreen({ navigation, route }: MazeGameScreenProps) {
     setRunId((value) => value + 1);
     setCurrentIndex(0);
     setCorrect(0);
+    setWrongAttempts(0);
     setFeedback(null);
+    resetRecorder();
     resetRound();
   }
 
@@ -365,6 +376,8 @@ export function MazeGameScreen({ navigation, route }: MazeGameScreenProps) {
       return;
     }
 
+    recordAnswer(currentQuestion, selectedAnswer.value, selectedAnswer.value === currentQuestion.correctAnswer);
+
     if (selectedAnswer.value === currentQuestion.correctAnswer) {
       setCorrect((value) => value + 1);
       setFeedback({ message: 'Camino correcto!', tone: 'success' });
@@ -374,6 +387,7 @@ export function MazeGameScreen({ navigation, route }: MazeGameScreenProps) {
     }
 
     Vibration.vibrate(60);
+    setWrongAttempts((value) => value + 1);
     setFeedback({ message: 'Esa salida no era, busca otra', tone: 'tryAgain' });
     setWrongPath(nextCells.map((pathCell) => getCellCenter(pathCell, boardSize)));
     setPaintedPath([]);
@@ -475,7 +489,7 @@ export function MazeGameScreen({ navigation, route }: MazeGameScreenProps) {
     <GameWorldBackground variant="forest">
       <ScreenContainer scroll={false}>
         {isComplete ? (
-          <GameCompleteCard correct={correct} total={questions.length} onHome={() => navigation.popToTop()} onReplay={resetGame} />
+          <GameCompleteCard correct={correct} extraAttempts={wrongAttempts} gameType="maze" total={questions.length} onHome={() => navigation.popToTop()} onReplay={resetGame} />
         ) : (
           <View style={styles.content}>
             <View style={styles.topBar}>
@@ -563,12 +577,12 @@ export function MazeGameScreen({ navigation, route }: MazeGameScreenProps) {
                 <DrawPath points={paintedPath} color={colors.primaryDark} strokeWidth={9} />
 
                 <Animated.View style={[styles.cornerBubble, getBubbleStyle(startCell, boardSize), styles.startBubble, { transform: [{ scale: startPulse }] }]}>
-                  {!isRunnerMoving ? <AnimalMascot kind="turtle" showBadge={false} size="sm" mood="happy" /> : null}
+                  {!isRunnerMoving ? <AnimalMascot kind="dog" showBadge={false} size="sm" mood="happy" /> : null}
                 </Animated.View>
 
                 {isRunnerMoving ? (
                   <Animated.View style={[styles.runner, { transform: [{ translateX: runnerX }, { translateY: runnerY }] }]}> 
-                    <AnimalMascot kind="turtle" showBadge={false} size="sm" mood="celebrating" />
+                    <AnimalMascot kind="dog" showBadge={false} size="sm" mood="celebrating" />
                   </Animated.View>
                 ) : null}
 

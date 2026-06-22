@@ -24,13 +24,13 @@ export function ConsentDialog({ loading = false, error, onAccept }: ConsentDialo
                 <Text style={styles.title}>Consentimiento</Text>
               </View>
               <Text style={styles.body}>
-                Esta aplicacion esta disenada para ninos y ninas entre 4 y 10 anos.
+                Esta aplicación está diseñada para niños y niñas entre 4 y 10 años.
                 Como padre, madre o acudiente, confirmo que entiendo que Maki+ es
                 una app educativa infantil y que soy responsable del acompanamiento
-                del nino o nina durante su uso.
+                del niño o niña durante su uso.
               </Text>
               <Text style={styles.safeText}>
-                No pedimos fotos, ubicacion, telefono ni datos sensibles del nino.
+                No pedimos fotos, ubicación, teléfono ni datos sensibles del niño.
               </Text>
               {error ? <Text style={styles.error}>{error}</Text> : null}
               <AppButton

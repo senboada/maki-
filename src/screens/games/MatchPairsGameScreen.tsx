@@ -10,7 +10,8 @@ import { colors, radius, spacing, typography } from '../../theme';
 import { DrawPath, type DrawPoint } from './DrawPath';
 import { GameCompleteCard } from './GameCompleteCard';
 import { GameExitButton } from './GameExitButton';
-import { createGameQuestions, getGameIntro } from './gameHelpers';
+import { createUniqueAnswerGameQuestions, getGameIntro } from './gameHelpers';
+import { useGameSessionRecorder } from './useGameSessionRecorder';
 
 type MatchPairsGameScreenProps = NativeStackScreenProps<AppStackParamList, 'MatchPairsGame'>;
 
@@ -24,7 +25,7 @@ type FeedbackState = {
   tone: 'success' | 'tryAgain';
 } | null;
 
-const animals = ['panda', 'rabbit', 'owl', 'turtle', 'dog-side'] as const;
+const animals = ['rabbit', 'rabbit', 'rabbit', 'rabbit', 'rabbit'] as const;
 const operationBubbleWidth = 142;
 const answerBubbleWidth = 92;
 
@@ -34,10 +35,11 @@ function shuffleNumbers(numbers: number[]) {
 
 export function MatchPairsGameScreen({ navigation, route }: MatchPairsGameScreenProps) {
   const [runId, setRunId] = useState(0);
-  const questions = useMemo(() => createGameQuestions(route.params, 5), [route.params, runId]);
+  const questions = useMemo(() => createUniqueAnswerGameQuestions(route.params, 5), [route.params, runId]);
   const answers = useMemo(() => shuffleNumbers(questions.map((question) => question.correctAnswer)), [questions]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [solvedIndexes, setSolvedIndexes] = useState<number[]>([]);
+  const [wrongAttempts, setWrongAttempts] = useState(0);
   const [lockedLines, setLockedLines] = useState<Array<{ from: DrawPoint; to: DrawPoint }>>([]);
   const [dragPoints, setDragPoints] = useState<DrawPoint[]>([]);
   const [boardSize, setBoardSize] = useState<BoardSize>({ width: 0, height: 0 });
@@ -53,11 +55,18 @@ export function MatchPairsGameScreen({ navigation, route }: MatchPairsGameScreen
 
   const isComplete = currentIndex >= questions.length;
   const currentQuestion = questions[currentIndex];
+  const { finishSession, recordAnswer, resetRecorder } = useGameSessionRecorder({ gameType: 'match_pairs', params: route.params, totalQuestions: questions.length });
 
   const rowHeight = boardSize.height > 0 ? boardSize.height / 5 : 72;
   const operationPoint = { x: operationBubbleWidth, y: rowHeight * currentIndex + rowHeight / 2 };
   const answerAnchorPoints = answers.map((_, index) => ({ x: boardSize.width - answerBubbleWidth, y: rowHeight * index + rowHeight / 2 }));
   const answerTouchPoints = answers.map((_, index) => ({ x: boardSize.width - answerBubbleWidth / 2, y: rowHeight * index + rowHeight / 2 }));
+
+  useEffect(() => {
+    if (isComplete) {
+      void finishSession({ correctAnswers: solvedIndexes.length });
+    }
+  }, [finishSession, isComplete, solvedIndexes.length]);
 
   useEffect(() => {
     if (!feedback) {
@@ -113,12 +122,14 @@ export function MatchPairsGameScreen({ navigation, route }: MatchPairsGameScreen
     setRunId((value) => value + 1);
     setCurrentIndex(0);
     setSolvedIndexes([]);
+    setWrongAttempts(0);
     setLockedLines([]);
     setDragPoints([]);
     setFeedback(null);
     setIsDragging(false);
     setWrongLine(null);
     setAnimatedAnswerIndex(null);
+    resetRecorder();
   }
 
   function validateRelease(point: DrawPoint) {
@@ -137,6 +148,12 @@ export function MatchPairsGameScreen({ navigation, route }: MatchPairsGameScreen
 
     const selectedAnswer = answers[targetIndex];
 
+    if (selectedAnswer === undefined) {
+      return;
+    }
+
+    recordAnswer(currentQuestion, selectedAnswer, selectedAnswer === currentQuestion.correctAnswer);
+
     if (selectedAnswer === currentQuestion.correctAnswer) {
       setLockedLines((lines) => [...lines, { from: operationPoint, to: answerAnchorPoints[targetIndex] as DrawPoint }]);
       setSolvedIndexes((indexes) => [...indexes, currentIndex]);
@@ -148,6 +165,7 @@ export function MatchPairsGameScreen({ navigation, route }: MatchPairsGameScreen
     }
 
     setFeedback({ message: 'Casi, esa respuesta no es pareja', tone: 'tryAgain' });
+    setWrongAttempts((value) => value + 1);
     animateError(answerAnchorPoints[targetIndex] as DrawPoint);
     setDragPoints([]);
   }
@@ -188,7 +206,7 @@ export function MatchPairsGameScreen({ navigation, route }: MatchPairsGameScreen
     <GameWorldBackground variant="forest">
       <ScreenContainer scrollEnabled={!isDragging}>
         {isComplete ? (
-          <GameCompleteCard correct={solvedIndexes.length} total={questions.length} onHome={() => navigation.popToTop()} onReplay={resetGame} />
+          <GameCompleteCard correct={solvedIndexes.length} extraAttempts={wrongAttempts} gameType="match_pairs" total={questions.length} onHome={() => navigation.popToTop()} onReplay={resetGame} />
         ) : (
           <View style={styles.content}>
             <View style={styles.topBar}>

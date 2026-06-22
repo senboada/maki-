@@ -13,17 +13,18 @@ type AnimalCardProps = {
   animal: AnimalKind;
   icon: IconName;
   color: string;
+  showBadge?: boolean;
   onPress?: () => void;
 };
 
-export function AnimalCard({ title, description, animal, icon, color, onPress }: AnimalCardProps) {
+export function AnimalCard({ title, description, animal, icon, color, onPress, showBadge = true }: AnimalCardProps) {
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [styles.card, { backgroundColor: color }, pressed && styles.pressed]}
     >
-      <AnimalMascot kind={animal} size="sm" />
+      <AnimalMascot kind={animal} showBadge={showBadge} size="sm" />
       <View style={styles.copy}>
         <View style={styles.titleRow}>
           <MaterialCommunityIcons name={icon} size={24} color={colors.text} />
