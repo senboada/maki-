@@ -25,6 +25,12 @@
     "plugins": [
       "expo-font",
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "1aa746f9-f9d3-4a87-88e6-1f8384cb9ad0"
+      }
+    },
+    "owner": "nboadam"
   }
 }

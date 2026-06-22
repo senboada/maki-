@@ -2,8 +2,13 @@ node_modules/
 .expo/
 dist/
 web-build/
+android/
+ios/
+maki-plus.apk
 .env
 .env.local
+.env.production
+.env.cloud.local
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
